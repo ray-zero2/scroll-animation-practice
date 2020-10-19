@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import anime from 'animejs';
 import { lerp, clamp } from '../utils';
 
 export default class Gl {
@@ -30,12 +31,18 @@ export default class Gl {
       y: 0,
       deltaY: 0,
     };
+    this.timeline = anime.timeline({
+      autoplay: false,
+      duration: 4500,
+      easing: 'easeOutSine',
+    });
   }
 
   render() {
-    this.percentage = lerp(0.9, this.event.y, this.percentage);
+    this.percentage = lerp(0.7, this.event.y, this.percentage);
     this.$span.innerText =
       'scroll Y : ' + Math.round(this.percentage * 100) / 100;
+    this.timeline.seek(this.percentage * (4500 / this.maxHeight));
     this.cube.rotation.x += 0.01;
     this.cube.rotation.y += 0.0125;
     this.cube.rotation.z += 0.012;
@@ -93,7 +100,8 @@ export default class Gl {
     e.preventDefault();
     // console.log(e.deltaY);
     // const deltaY = (e.wheelDeltaY || e.deltaY) * 0.5;
-    const deltaY = e.deltaY * 0.5;
+    // const deltaY = e.deltaY * 0.5;
+    const deltaY = e.deltaY;
     // console.log(deltaY);
     this.event.deltaY = deltaY;
     this.scroll();
@@ -123,6 +131,42 @@ export default class Gl {
     window.addEventListener('touchend', this.handleTouchEnd.bind(this));
   }
 
+  initTimeline() {
+    this.timeline.add({
+      targets: this.cube.position,
+      x: 100,
+      y: 25,
+      z: -50,
+      duration: 2250,
+      update: this.camera.updateProjectionMatrix(),
+    });
+    this.timeline.add({
+      targets: this.cube.position,
+      x: 0,
+      y: 0,
+      z: 50,
+      duration: 2250,
+      update: this.camera.updateProjectionMatrix(),
+    });
+
+    const value = new THREE.Color(0xfffcfc);
+    const initColor = new THREE.Color(0x161216);
+    this.timeline.add(
+      {
+        targets: initColor,
+        r: [initColor.r, value.r],
+        g: [initColor.g, value.g],
+        b: [initColor.b, value.b],
+        duration: 4500,
+        update: () => {
+          this.renderer.setClearColor(initColor);
+        },
+        // this is the offset of the animation in the timeline.
+      },
+      0
+    );
+  }
+
   init() {
     this.renderer.setPixelRatio(this.viewProps.dpr);
     this.renderer.setClearColor(0x161216);
@@ -133,6 +177,7 @@ export default class Gl {
     this.createObject();
     this.scene.add(this.cube);
 
+    this.initTimeline();
     this.bind();
     this.animate();
   }
